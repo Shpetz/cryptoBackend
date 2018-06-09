@@ -9,18 +9,36 @@ const env        = require('dotenv').load(); //this is for loading the db secret
 const request    = require('request');
 var StellarSdk = require('stellar-sdk');
 
-// Configuration
-//mongoose.connect('mongodb://localhost/hotels');
-//mongoose.connect(process.env.COSMOSDB_CONNSTR+process.env.COSMOSDB_DBNAME+"?ssl=true&replicaSet=globaldb"); //Creates a new DB, if it doesn't already exist
+//ACCOUNT 1
+// Public Key: GDGUPWYM54FUJVJCKMYFG6UAOXF67MJYP6VRIZ7I6W5ULP5UAKR42EJM
+// Secret Key: SDNJJY22TIC3JMDKM4PGBLREPYGKUTSAYSDKVQTGXHLS2S7YKV2XCGID
 
-//console.log("post connect command")
+// ACCOUNT 2
+// Public Key: GCOEBLZKBAMGFQ6BIMWPP2U6W4CWX6UV2YEJC5VTVDT24KP3LRORIRRN
+// Secret Key: SC2UH4NEZNEI2EZ5MML5VGC2GCZQWC2HDDKADQCSS7JMGF2XUAKL26YA
 
+// ACCOUNT 3
+// Public Key: SDQNXAYSC3BE2EA6KO4CZA2V4MS5SE76GJ2DJ3AAPX524VPWB53BXTLI
+// Secret Key: GB3NRJBDQBFHE7T2A6UE4BYSEJKM75UTZLQG6PFM2EYAHNNVVI6LIR2P
+
+// ACCOUNT 3
+// Public Key: SDQNXAYSC3BE2EA6KO4CZA2V4MS5SE76GJ2DJ3AAPX524VPWB53BXTLI
+// Secret Key: GB3NRJBDQBFHE7T2A6UE4BYSEJKM75UTZLQG6PFM2EYAHNNVVI6LIR2P
+
+// ACCOUNT 4
+// Public Key: SDJMVJCLRF34YNA7SXWELBU5HME5WJRY7KFUHDO3PL2S3VROYOZWMH5Y
+// Secret Key: GDKUGZERL3IT5SQY3OHNG7JOOW7PVCLZ3LR2IUX7BZSJWXRITRYX5ALP
+
+
+//create new public/private key come - required for stellar wallet
 var pair = StellarSdk.Keypair.random();
 pair.secret();
-console.log("secret: " + pair.secret)
+console.log("secret: " + pair.secret())
 pair.publicKey();
-console.log("publicKey: " + pair.publicKey)
+console.log("publicKey: " + pair.publicKey())
 
+//use the public key to create a new test account with some currency
+console.log("sending request to friendbot")
 request.get({
   url: 'https://friendbot.stellar.org',
   qs: { addr: pair.publicKey() },
@@ -30,9 +48,25 @@ request.get({
     console.error('ERROR!', error || body);
   }
   else {
-    console.log('SUCCESS! You have a new account :)\n', body);
+    console.log('SUCCESS! You have a new account :)\n', body._links.transaction.href);
+    loadaccounts();
   }
 });
+
+function loadaccounts(){
+  var server = new StellarSdk.Server('https://horizon-testnet.stellar.org');
+  //query the server for the accout balance
+  server.loadAccount(pair.publicKey()).then(function(account) {
+    console.log('Balances for account: ' + pair.publicKey());
+    account.balances.forEach(function(balance) {
+      console.log('Type:', balance.asset_type, ', Balance:', balance.balance);
+    });
+  }, function (error) {
+      console.log(error);
+  });
+  
+  //
+}
 
 // var db = mongoose.connection;
 // db.on('error', console.error.bind(console, 'connection error:'));
@@ -40,10 +74,10 @@ request.get({
 // console.log("Connected to DB");
 // });
  
-app.use(bodyParser.urlencoded({ extended: false })); // Parses urlencoded bodies
-app.use(bodyParser.json()); // Send JSON responses
-app.use(logger('dev')); // Log requests to API using morgan
-app.use(cors());
+// app.use(bodyParser.urlencoded({ extended: false })); // Parses urlencoded bodies
+// app.use(bodyParser.json()); // Send JSON responses
+// app.use(logger('dev')); // Log requests to API using morgan
+// app.use(cors());
  
 // Models
 // var Room = mongoose.model('Room', {
@@ -115,50 +149,50 @@ app.use(cors());
  
 // Routes
 
-    app.post('/api/rooms', function(req, res) {
+    // app.post('/api/rooms', function(req, res) {
 
-        Room.find({
-            type: req.body.roomType,
-            beds: req.body.beds,
-            max_occupancy: {$gt: req.body.guests},
-            cost_per_night: {$gte: req.body.priceRange.lower, $lte: req.body.priceRange.upper},
-            reserved: { 
+    //     Room.find({
+    //         type: req.body.roomType,
+    //         beds: req.body.beds,
+    //         max_occupancy: {$gt: req.body.guests},
+    //         cost_per_night: {$gte: req.body.priceRange.lower, $lte: req.body.priceRange.upper},
+    //         reserved: { 
 
-                //Check if any of the dates the room has been reserved for overlap with the requsted dates
-                $not: {
-                    $elemMatch: {from: {$lt: req.body.to.substring(0,10)}, to: {$gt: req.body.from.substring(0,10)}}
-                }
+    //             //Check if any of the dates the room has been reserved for overlap with the requsted dates
+    //             $not: {
+    //                 $elemMatch: {from: {$lt: req.body.to.substring(0,10)}, to: {$gt: req.body.from.substring(0,10)}}
+    //             }
 
-            }
-        }, function(err, rooms){
-            if(err){
-                res.send(err);
-            } else {
-                res.json(rooms);
-            }
-        });
+    //         }
+    //     }, function(err, rooms){
+    //         if(err){
+    //             res.send(err);
+    //         } else {
+    //             res.json(rooms);
+    //         }
+    //     });
 
-    });
+    // });
  
-    app.post('/api/rooms/reserve', function(req, res) {
+    // app.post('/api/rooms/reserve', function(req, res) {
  
-        console.log(req.body._id);
+    //     console.log(req.body._id);
 
-        Room.findByIdAndUpdate(req.body._id, {
-            $push: {"reserved": {from: req.body.from, to: req.body.to}}
-        }, {
-            safe: true,
-            new: true
-        }, function(err, room){
-            if(err){
-                res.send(err);
-            } else {
-                res.json(room);
-            }
-        });
+    //     Room.findByIdAndUpdate(req.body._id, {
+    //         $push: {"reserved": {from: req.body.from, to: req.body.to}}
+    //     }, {
+    //         safe: true,
+    //         new: true
+    //     }, function(err, room){
+    //         if(err){
+    //             res.send(err);
+    //         } else {
+    //             res.json(room);
+    //         }
+    //     });
  
-    });
+    // });
  
 // listen
 app.listen(8080);
-console.log("App listening on port 8080");
+// console.log("App listening on port 8080");
